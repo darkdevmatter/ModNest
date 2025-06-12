@@ -1,2 +1,57 @@
 venv
 venv/*
+# Terraform
+terraform/.terraform.lock.hcl
+.terraform/
+.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+secret.auto.tfvars
+terraform.tfvars
+# dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# testing
+coverage/
+*.lcov
+
+# production build
+build/
+dist/
+out/
+
+# misc
+.DS_Store
+.env
+.env.*.local
+.npm
+.cache/
+.yarn/
+.yarn-cache/
+*.log
+
+# VS Code
+.vscode/
+.history/
+
+# macOS and Linux
+*.swp
+*.swo
+.idea/
+Thumbs.db
+
+# local env files (you may want to keep .env.example)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

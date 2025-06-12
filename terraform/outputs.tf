@@ -13,42 +13,42 @@ output "public_subnets" {
   value       = module.vpc.public_subnets
 }
 
-output "cluster_name" {
-  description = "EKS cluster name"
-  value       = module.eks.cluster_name
-}
+# output "cluster_name" {
+#   description = "EKS cluster name"
+#   value       = module.eks.cluster_name
+# }
 
-output "cluster_endpoint" {
-  description = "EKS cluster endpoint"
-  value       = module.eks.cluster_endpoint
-}
+# output "cluster_endpoint" {
+#   description = "EKS cluster endpoint"
+#   value       = module.eks.cluster_endpoint
+# }
 
-output "cluster_certificate_authority_data" {
-  description = "EKS cluster certificate authority data"
-  value       = module.eks.cluster_certificate_authority_data
-}
+# output "cluster_certificate_authority_data" {
+#   description = "EKS cluster certificate authority data"
+#   value       = module.eks.cluster_certificate_authority_data
+# }
 
-output "kubeconfig" {
-  description = "EKS cluster kubeconfig"
-  value       = module.eks.kubeconfig
-}
+# output "kubeconfig" {
+#   description = "EKS cluster kubeconfig"
+#   value       = module.eks.kubeconfig
+# }
 
-output "node_group_role_arn" {
-  description = "ARN of EKS node group IAM role"
-  value       = module.eks.eks_managed_node_groups["default"].iam_role_arn
-}
+# output "node_group_role_arn" {
+#   description = "ARN of EKS node group IAM role"
+#   value       = module.eks.eks_managed_node_groups["default"].iam_role_arn
+# }
 
-output "efs_id" {
-  description = "EFS File System ID"
-  value       = module.efs.id
-}
+# # output "efs_id" {
+#   description = "EFS File System ID"
+#   value       = module.efs.id
+# }
 
-output "efs_mount_targets" {
-  description = "EFS Mount Target IDs"
-  value       = module.efs.mount_targets
-}
+# output "efs_mount_targets" {
+#   description = "EFS Mount Target IDs"
+#   value       = module.efs.mount_targets
+# }
 
-output "efs_dns_name" {
-  description = "EFS DNS Name"
-  value       = module.efs.dns_name
-}
+# output "efs_dns_name" {
+#   description = "EFS DNS Name"
+#   value       = module.efs.dns_name
+# }
