@@ -3,13 +3,40 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 # CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
-# CORS(
-#     app,
-#     supports_credentials=True,
-#     resources={r"/*": {"origins": "http://localhost:3000"}}
-# )
+CORS(
+    app,
+    supports_credentials=True,
+    resources={r"/login": {"origins": "http://localhost:3000"}}
+)
 
-CORS(app, resources={r"/login": {"origins": "http://localhost:3000"}})
+# --- Sample Data (for development) ---
+SERVERS = [
+    {
+        "id": 1,
+        "name": "My Survival Server",
+        "running": True,
+        "type": "Bedrock Edition",
+        "players": 5,
+        "maxPlayers": 20,
+        "ip": "192.168.1.10:19132",
+        "isAdmin": True,
+        "mcsmUrl": "http://localhost:24444",
+    },
+    {
+        "id": 2,
+        "name": "Modded Java Server",
+        "running": False,
+        "type": "Java Edition",
+        "players": 0,
+        "maxPlayers": 10,
+        "ip": "192.168.1.11:25565",
+        "isAdmin": False,
+        "mcsmUrl": "",
+    },
+]
+CURRENT_USER = {"username": "Steve"}
+
+# CORS(app, resources={r"/login": {"origins": "http://localhost:3000"}})
 
 # --- Auth Endpoints ---
 @app.route('/login', methods=['POST', 'OPTIONS'])
@@ -25,6 +52,7 @@ def login():
 
     data = request.get_json()
     print(data)
+    # Temp
     username = data.get('username')
     password = data.get('password')
     if username == 'admin' and password == 'password':
@@ -51,14 +79,12 @@ def logout():
 # --- User Endpoint ---
 @app.route('/user', methods=['GET'])
 def get_user():
-    # TODO: Return current user info
-    return jsonify({'user': 'sample_user'})
+    return jsonify(CURRENT_USER)
 
 # --- Server List/Creation ---
 @app.route('/servers', methods=['GET'])
 def list_servers():
-    # TODO: Return list of servers
-    return jsonify({'servers': []})
+    return jsonify({'servers': SERVERS})
 
 @app.route('/servers', methods=['POST'])
 def create_server():
@@ -82,20 +108,32 @@ def delete_server(server_id):
     return jsonify({'message': f'Server {server_id} deleted'})
 
 # --- Server Actions ---
-@app.route('/servers/<server_id>/start', methods=['POST'])
+@app.route('/servers/<int:server_id>/start', methods=['POST'])
 def start_server(server_id):
-    # TODO: Start server
-    return jsonify({'message': f'Server {server_id} started'})
+    for server in SERVERS:
+        if server["id"] == server_id:
+            server["running"] = True
+            return jsonify({"success": True})
+    return jsonify({"error": "Server not found"}), 404
 
-@app.route('/servers/<server_id>/stop', methods=['POST'])
+@app.route('/servers/<int:server_id>/stop', methods=['POST'])
 def stop_server(server_id):
-    # TODO: Stop server
-    return jsonify({'message': f'Server {server_id} stopped'})
+    for server in SERVERS:
+        if server["id"] == server_id:
+            server["running"] = False
+            return jsonify({"success": True})
+    return jsonify({"error": "Server not found"}), 404
 
-@app.route('/servers/<server_id>/restart', methods=['POST'])
+@app.route('/servers/<int:server_id>/restart', methods=['POST'])
 def restart_server(server_id):
-    # TODO: Restart server
-    return jsonify({'message': f'Server {server_id} restarted'})
+    import time
+    for server in SERVERS:
+        if server["id"] == server_id:
+            server["running"] = False
+            time.sleep(1)  # Simulate downtime
+            server["running"] = True
+            return jsonify({"success": True})
+    return jsonify({"error": "Server not found"}), 404
 
 @app.route('/servers/<server_id>/command', methods=['POST'])
 def send_command(server_id):

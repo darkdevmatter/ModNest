@@ -21,3 +21,16 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# VSCode settings
+.vscode/
+
+# macOS and OS-specific files
+Thumbs.db
+
+# Yarn v2+
+.yarn/
+.yarnrc.yml
+
+# Cache
+.cache/
