@@ -63,22 +63,7 @@ Ensure you have the following installed:
     ```
     The backend server will start on http://localhost:5000
 
-    The backend provides the following API endpoints:
-    - Authentication:
-      - POST `/login` - User login
-      - POST `/signup` - User registration
-      - POST `/logout` - User logout
-    - Server Management:
-      - GET `/servers` - List all servers
-      - POST `/servers` - Create a new server
-      - GET/PUT/DELETE `/servers/<server_id>` - Manage individual servers
-      - POST `/servers/<server_id>/start` - Start a server
-      - POST `/servers/<server_id>/stop` - Stop a server
-      - POST `/servers/<server_id>/restart` - Restart a server
-    - Server Features:
-      - GET `/servers/<server_id>/players` - List server players
-      - GET `/servers/<server_id>/world` - Get world information
-      - GET/POST `/servers/<server_id>/backups` - Manage server backups
+    For detailed API documentation, including all available endpoints, request/response formats, and development notes, please see [API Documentation](docs/api.md).
 
     For development, the backend includes sample data and a test user:
     - Username: `admin`
@@ -98,6 +83,7 @@ Ensure you have the following installed:
 - For development, the backend includes sample server data
 - All API endpoints return JSON responses
 - The backend is currently in development mode with sample data
+- For complete API documentation, see [API Documentation](docs/api.md)
 
 ### Available Scripts
 
