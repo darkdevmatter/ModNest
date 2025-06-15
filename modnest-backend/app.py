@@ -1,158 +1,160 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from models import db, User, Server, Backup
+from config import Config
+from datetime import datetime
 
 app = Flask(__name__)
-# CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
-# CORS(
-#     app,
-#     supports_credentials=True,
-#     resources={r"/*": {"origins": "http://localhost:3000"}}
-# )
-CORS(app, supports_credentials=True)
-# --- Sample Data (for development) ---
-SERVERS = [
-    {
-        "id": 1,
-        "name": "My Survival Server",
-        "running": True,
-        "type": "Bedrock Edition",
-        "players": 5,
-        "maxPlayers": 20,
-        "ip": "192.168.1.10:19132",
-        "isAdmin": True,
-        "mcsmUrl": "http://localhost:24444",
-    },
-    {
-        "id": 2,
-        "name": "Modded Java Server",
-        "running": False,
-        "type": "Java Edition",
-        "players": 0,
-        "maxPlayers": 10,
-        "ip": "192.168.1.11:25565",
-        "isAdmin": False,
-        "mcsmUrl": "",
-    },
-]
-CURRENT_USER = {"username": "Steve"}
+app.config.from_object(Config)
 
-# CORS(app, resources={r"/login": {"origins": "http://localhost:3000"}})
+# Initialize extensions
+db.init_app(app)
+CORS(app, supports_credentials=True, resources={r"/login": {"origins": Config.CORS_ORIGINS}})
+
+# Create database tables
+with app.app_context():
+    db.create_all()
+    # Create admin user if it doesn't exist
+    if not User.query.filter_by(username='admin').first():
+        admin = User(username='admin', email='admin@modnest.com', is_admin=True)
+        admin.set_password('Welcome123$')
+        db.session.add(admin)
+        db.session.commit()
 
 # --- Auth Endpoints ---
 @app.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     if request.method == 'OPTIONS':
-        # Reply OK to preflight request
         response = jsonify({'message': 'CORS preflight'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', Config.CORS_ORIGINS[0])
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         response.headers.add('Access-Control-Allow-Credentials', 'true')
         return response, 200
 
     data = request.get_json()
-    print(data)
-    # Temp
-    username = data.get('username')
-    password = data.get('password')
-    if username == 'admin' and password == 'Welcome123$':
-        res = jsonify({'success': True, 'user': username})
-        res.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    user = User.query.filter_by(username=data.get('username')).first()
+    
+    if user and user.check_password(data.get('password')):
+        res = jsonify({'success': True, 'user': user.to_dict()})
+        res.headers.add('Access-Control-Allow-Origin', Config.CORS_ORIGINS[0])
         res.headers.add('Access-Control-Allow-Credentials', 'true')
         return res
     else:
         res = jsonify({'success': False, 'error': 'Invalid credentials'})
-        res.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        res.headers.add('Access-Control-Allow-Origin', Config.CORS_ORIGINS[0])
         res.headers.add('Access-Control-Allow-Credentials', 'true')
         return res, 401
 
 @app.route('/signup', methods=['POST'])
 def signup():
-    # TODO: Implement signup logic
-    return jsonify({'message': 'Signup endpoint'}), 200
+    data = request.get_json()
+    
+    if User.query.filter_by(username=data.get('username')).first():
+        return jsonify({'error': 'Username already exists'}), 400
+        
+    if User.query.filter_by(email=data.get('email')).first():
+        return jsonify({'error': 'Email already exists'}), 400
+    
+    user = User(
+        username=data.get('username'),
+        email=data.get('email')
+    )
+    user.set_password(data.get('password'))
+    
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'user': user.to_dict()}), 201
 
-@app.route('/logout', methods=['POST'])
-def logout():
-    # TODO: Implement logout logic
-    return jsonify({'message': 'Logout endpoint'}), 200
-
-# --- User Endpoint ---
-@app.route('/api/user', methods=['GET'])
+@app.route('/user', methods=['GET'])
 def get_user():
-    return jsonify(CURRENT_USER)
+    # TODO: Implement proper session management
+    user = User.query.filter_by(username='admin').first()
+    return jsonify(user.to_dict() if user else {'error': 'User not found'}), 200 if user else 404
 
-# --- Server List/Creation ---
+# --- Server Management ---
 @app.route('/api/servers', methods=['GET'])
 def list_servers():
-    return jsonify({'servers': SERVERS})
+    servers = Server.query.all()
+    return jsonify({'servers': [server.to_dict() for server in servers]})
 
 @app.route('/api/servers', methods=['POST'])
 def create_server():
-    data = request.json
-    name = data.get('name', 'New Server')
-    new_id = max(s["id"] for s in SERVERS) + 1 if SERVERS else 1
-    new_server = {
-        "id": new_id,
-        "name": name,
-        "running": False,
-        "type": "Bedrock Edition",
-        "players": 0,
-        "maxPlayers": 10,
-        "ip": f"192.168.1.{new_id + 10}:19132",
-        "isAdmin": False,
-        "mcsmUrl": "",
-    }
-    SERVERS.append(new_server)
-    return jsonify({"success": True, "server": new_server}), 201
+    data = request.get_json()
+    # TODO: Get actual user from session
+    user = User.query.filter_by(username='admin').first()
+    
+    server = Server(
+        name=data.get('name'),
+        server_type=data.get('type', 'java'),
+        version=data.get('version'),
+        ip=data.get('ip'),
+        port=data.get('port'),
+        max_players=data.get('maxPlayers', 20),
+        user_id=user.id
+    )
+    
+    db.session.add(server)
+    db.session.commit()
+    
+    return jsonify(server.to_dict()), 201
 
-# --- Individual Server ---
-@app.route('/api/servers/<server_id>', methods=['GET'])
+@app.route('/api/servers/<int:server_id>', methods=['GET'])
 def get_server(server_id):
-    # TODO: Return server info
-    return jsonify({'server_id': server_id})
+    server = Server.query.get_or_404(server_id)
+    return jsonify(server.to_dict())
 
-@app.route('/api/servers/<server_id>', methods=['PUT'])
+@app.route('/api/servers/<int:server_id>', methods=['PUT'])
 def update_server(server_id):
-    # TODO: Update server info
-    return jsonify({'message': f'Server {server_id} updated'})
+    server = Server.query.get_or_404(server_id)
+    data = request.get_json()
+    
+    for key, value in data.items():
+        if hasattr(server, key):
+            setattr(server, key, value)
+    
+    server.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify(server.to_dict())
 
-@app.route('/api/servers/<server_id>', methods=['DELETE'])
+@app.route('/api/servers/<int:server_id>', methods=['DELETE'])
 def delete_server(server_id):
-    # TODO: Delete server
-    return jsonify({'message': f'Server {server_id} deleted'})
+    server = Server.query.get_or_404(server_id)
+    db.session.delete(server)
+    db.session.commit()
+    return jsonify({'message': 'Server deleted'})
 
 # --- Server Actions ---
 @app.route('/api/servers/<int:server_id>/start', methods=['POST'])
 def start_server(server_id):
-    for server in SERVERS:
-        if server["id"] == server_id:
-            server["running"] = True
-            return jsonify({"success": True})
-    return jsonify({"error": "Server not found"}), 404
+    server = Server.query.get_or_404(server_id)
+    server.is_running = True
+    server.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({"success": True})
 
 @app.route('/api/servers/<int:server_id>/stop', methods=['POST'])
 def stop_server(server_id):
-    for server in SERVERS:
-        if server["id"] == server_id:
-            server["running"] = False
-            return jsonify({"success": True})
-    return jsonify({"error": "Server not found"}), 404
+    server = Server.query.get_or_404(server_id)
+    server.is_running = False
+    server.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({"success": True})
 
 @app.route('/api/servers/<int:server_id>/restart', methods=['POST'])
 def restart_server(server_id):
+    server = Server.query.get_or_404(server_id)
+    server.is_running = False
+    db.session.commit()
+    # Simulate downtime
     import time
-    for server in SERVERS:
-        if server["id"] == server_id:
-            server["running"] = False
-            time.sleep(1)  # Simulate downtime
-            server["running"] = True
-            return jsonify({"success": True})
-    return jsonify({"error": "Server not found"}), 404
-
-@app.route('/api/servers/<server_id>/command', methods=['POST'])
-def send_command(server_id):
-    # TODO: Send command to server
-    return jsonify({'message': f'Command sent to server {server_id}'})
+    time.sleep(1)
+    server.is_running = True
+    server.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({"success": True})
 
 # --- Server Players ---
 @app.route('/api/servers/<server_id>/players', methods=['GET'])
@@ -227,35 +229,36 @@ def update_settings():
 # --- API Endpoints for Frontend POC ---
 @app.route('/api/servers', methods=['GET'])
 def api_get_servers():
-    return jsonify({'servers': SERVERS})
+    return jsonify({'servers': Server.query.all()})
 
 @app.route('/api/servers/<int:server_id>/start', methods=['POST'])
 def api_start_server(server_id):
-    for server in SERVERS:
-        if server['id'] == server_id:
-            server['running'] = True
-            return jsonify({'success': True, 'message': f'Server {server_id} started'})
-    return jsonify({'success': False, 'error': 'Server not found'}), 404
+    server = Server.query.get_or_404(server_id)
+    server.is_running = True
+    server.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'success': True, 'message': f'Server {server_id} started'})
 
 @app.route('/api/servers/<int:server_id>/stop', methods=['POST'])
 def api_stop_server(server_id):
-    for server in SERVERS:
-        if server['id'] == server_id:
-            server['running'] = False
-            return jsonify({'success': True, 'message': f'Server {server_id} stopped'})
-    return jsonify({'success': False, 'error': 'Server not found'}), 404
+    server = Server.query.get_or_404(server_id)
+    server.is_running = False
+    server.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'success': True, 'message': f'Server {server_id} stopped'})
 
 @app.route('/api/servers/<int:server_id>/restart', methods=['POST'])
 def api_restart_server(server_id):
-    for server in SERVERS:
-        if server['id'] == server_id:
-            server['running'] = False
-            # Simulate restart
-            import time
-            time.sleep(0.5)
-            server['running'] = True
-            return jsonify({'success': True, 'message': f'Server {server_id} restarted'})
-    return jsonify({'success': False, 'error': 'Server not found'}), 404
+    server = Server.query.get_or_404(server_id)
+    server.is_running = False
+    db.session.commit()
+    # Simulate restart
+    import time
+    time.sleep(0.5)
+    server.is_running = True
+    server.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'success': True, 'message': f'Server {server_id} restarted'})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(host='0.0.0.0', debug=True)
