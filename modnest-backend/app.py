@@ -55,7 +55,7 @@ def login():
     # Temp
     username = data.get('username')
     password = data.get('password')
-    if username == 'admin' and password == 'password':
+    if username == 'admin' and password == 'Welcome123$':
         res = jsonify({'success': True, 'user': username})
         res.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
         res.headers.add('Access-Control-Allow-Credentials', 'true')
@@ -223,6 +223,39 @@ def get_settings():
 def update_settings():
     # TODO: Update settings
     return jsonify({'message': 'Settings updated'})
+
+# --- API Endpoints for Frontend POC ---
+@app.route('/api/servers', methods=['GET'])
+def api_get_servers():
+    return jsonify({'servers': SERVERS})
+
+@app.route('/api/servers/<int:server_id>/start', methods=['POST'])
+def api_start_server(server_id):
+    for server in SERVERS:
+        if server['id'] == server_id:
+            server['running'] = True
+            return jsonify({'success': True, 'message': f'Server {server_id} started'})
+    return jsonify({'success': False, 'error': 'Server not found'}), 404
+
+@app.route('/api/servers/<int:server_id>/stop', methods=['POST'])
+def api_stop_server(server_id):
+    for server in SERVERS:
+        if server['id'] == server_id:
+            server['running'] = False
+            return jsonify({'success': True, 'message': f'Server {server_id} stopped'})
+    return jsonify({'success': False, 'error': 'Server not found'}), 404
+
+@app.route('/api/servers/<int:server_id>/restart', methods=['POST'])
+def api_restart_server(server_id):
+    for server in SERVERS:
+        if server['id'] == server_id:
+            server['running'] = False
+            # Simulate restart
+            import time
+            time.sleep(0.5)
+            server['running'] = True
+            return jsonify({'success': True, 'message': f'Server {server_id} restarted'})
+    return jsonify({'success': False, 'error': 'Server not found'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
